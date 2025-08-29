@@ -1,23 +1,40 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { Provider } from 'react-redux';
-import { store } from './app/store';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
-import './index.css';
+import React, { useEffect, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "../../app/store";
+import { fetchCryptos } from "./coinsSlice";
 
-const container = document.getElementById('root')!;
-const root = createRoot(container);
+function CoinsList() {
+  const dispatch = useDispatch<AppDispatch>();
+  const { cryptos, status, error } = useSelector(
+    (state: RootState) => state.coins
+  );
 
-root.render(
-  <React.StrictMode>
-    <Provider store={store}>
-      <App />
-    </Provider>
-  </React.StrictMode>
-);
+  // Memoize fetchCryptos to satisfy eslint rules
+  const loadCryptos = useCallback(() => {
+    dispatch(fetchCryptos());
+  }, [dispatch]);
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+  useEffect(() => {
+    loadCryptos();
+  }, [loadCryptos]);
+
+  if (status === "loading") return <p>Loading...</p>;
+  if (status === "failed") return <p>Error: {error}</p>;
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">
+      {cryptos.map((coin) => (
+        <div
+          key={coin.id}
+          className="bg-white rounded-2xl shadow-md p-4 flex flex-col items-center"
+        >
+          <img src={coin.image} alt={coin.name} className="w-12 h-12 mb-2" />
+          <h2 className="text-lg font-bold">{coin.name}</h2>
+          <p className="text-gray-600">${coin.current_price}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default CoinsList;
